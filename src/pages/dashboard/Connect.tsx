@@ -190,7 +190,7 @@ export default function Connect() {
   // Build connect URL — pass JWT as ?token= so backend can store against logged-in user
   const connect = (platform: string) => {
     const token = localStorage.getItem('token') || ''
-    const connectUrl = `http://localhost:8000/api/social/${platform}/connect?token=${encodeURIComponent(token)}`
+    const connectUrl = `https://newproject-chi-gold.vercel.app/api/social/${platform}/connect?token=${encodeURIComponent(token)}`
     window.location.href = connectUrl
   }
 
