@@ -97,6 +97,10 @@ export default function Register() {
                   Sign in
                 </Link>
               </p>
+              <p className="text-xs text-muted-foreground text-center">
+                By creating an account, you agree to our{' '}
+                <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link>.
+              </p>
             </CardFooter>
           </form>
         </Card>

@@ -83,6 +83,10 @@ export default function Login() {
                   Register
                 </Link>
               </p>
+              <p className="text-xs text-muted-foreground text-center">
+                By signing in, you agree to our{' '}
+                <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link>.
+              </p>
             </CardFooter>
           </form>
         </Card>

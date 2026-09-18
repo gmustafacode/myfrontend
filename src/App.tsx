@@ -5,6 +5,8 @@ import { ProtectedRoute } from '@/components/ProtectedRoute'
 import DashboardLayout from '@/layouts/DashboardLayout'
 import Login from '@/pages/Login'
 import Register from '@/pages/Register'
+import Terms from '@/pages/Terms'
+import FacebookPrivacy from '@/pages/FacebookPrivacy'
 import Dashboard from '@/pages/dashboard/Dashboard'
 import Composer from '@/pages/dashboard/Composer'
 import Calendar from '@/pages/dashboard/Calendar'
@@ -22,6 +24,8 @@ export default function App() {
           {/* Public routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/facebook/privacy" element={<FacebookPrivacy />} />
 
           {/* Protected dashboard routes */}
           <Route
