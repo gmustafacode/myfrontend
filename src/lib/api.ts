@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const API_BASE_URL = 'https://newproject-chi-gold.vercel.app/api'
+const API_BASE_URL = 'https://social-sync-backend.vercel.app/api'
 
 const api = axios.create({
   baseURL: API_BASE_URL,
