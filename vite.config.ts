@@ -13,7 +13,7 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'https://newproject-chi-gold.vercel.app',
+        target: 'https://social-sync-backend.vercel.app',
         changeOrigin: true,
       },
     },

@@ -40,6 +40,7 @@ import {
   ArrowRight,
   Search,
   Globe,
+  Music2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -153,7 +154,7 @@ export default function Composer() {
           setSelectedPlatforms(accs.map((a: Account) => a.platform))
         }
       })
-      .catch(() => {})
+      .catch(() => { })
   }, [])
 
   // Auto-fetch topic suggestions when moving to step 1
@@ -211,7 +212,7 @@ export default function Composer() {
       // Auto-run moderation check in background
       api.post('/ai/moderate', { content: generated })
         .then((mRes) => setModResult(mRes.data))
-        .catch(() => {})
+        .catch(() => { })
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'AI Generation failed. Please try again.')
     } finally {
@@ -382,6 +383,14 @@ export default function Composer() {
     if (postFormat === 'video' && !videoFile && !videoUrl.trim()) {
       toast.error('Please upload a video file or provide a video URL'); return
     }
+    if (selectedPlatforms.includes('instagram') && !['image', 'video'].includes(postFormat)) {
+      toast.error('Instagram supports image posts, Reels, and video posts from this composer')
+      return
+    }
+    if (selectedPlatforms.includes('tiktok') && (postFormat !== 'video' || !videoFile)) {
+      toast.error('TikTok requires a video file upload')
+      return
+    }
     if (publishMode === 'schedule' && !scheduledFor) {
       toast.error('Please pick a schedule date & time'); return
     }
@@ -549,6 +558,53 @@ export default function Composer() {
           }
         }
 
+        // 3. Instagram Publishing (images and videos are published as feed media/Reels)
+        if (selectedPlatforms.includes('instagram')) {
+          try {
+            let mediaUrl = postFormat === 'image' ? imageUrl : videoUrl
+            if (!mediaUrl) {
+              const file = postFormat === 'image' ? imageFile : videoFile
+              if (file) {
+                const formData = new FormData()
+                formData.append('file', file)
+                const uploadRes = await api.post('/media/upload', formData)
+                mediaUrl = uploadRes.data?.url || ''
+              }
+            }
+            if (!mediaUrl) throw new Error('Instagram requires a public media URL')
+            const endpoint = postFormat === 'image' ? '/social/instagram/post/image' : '/social/instagram/post/reel'
+            const payload = postFormat === 'image' ? { imageUrl: mediaUrl, caption: content } : { videoUrl: mediaUrl, caption: content, shareToFeed: true }
+            const res = await api.post(endpoint, payload)
+            toast.success(`${postFormat === 'image' ? 'Image' : 'Reel'} published live to Instagram!`, {
+              description: res.data?.mediaId ? `Media ID: ${res.data.mediaId}` : 'Published to Instagram',
+              duration: 6000
+            })
+            publishedAny = true
+          } catch (igErr: any) {
+            toast.error(igErr.response?.data?.message || igErr.message || 'Instagram publishing failed')
+          }
+        }
+
+        // 4. TikTok requires a video file for the Content Posting API upload flow.
+        if (selectedPlatforms.includes('tiktok')) {
+          try {
+            if (postFormat !== 'video' || !videoFile) {
+              throw new Error('TikTok requires a video file upload')
+            }
+            const formData = new FormData()
+            formData.append('video', videoFile)
+            formData.append('title', content)
+            const res = await api.post('/social/tiktok/post/video', formData)
+            toast.success('Video sent to TikTok!', {
+              description: res.data?.publishId ? `Publish ID: ${res.data.publishId}` : 'TikTok is processing the video',
+              duration: 6000
+            })
+            publishedAny = true
+          } catch (ttErr: any) {
+            toast.error(ttErr.response?.data?.message || ttErr.message || 'TikTok publishing failed')
+          }
+        }
+
         if (!publishedAny) {
           let finalMediaUrl = imageUrl || (imageFile ? imageFile.name : undefined)
           if (postFormat === 'video') {
@@ -661,8 +717,8 @@ export default function Composer() {
                   i < step
                     ? 'bg-primary border-primary text-primary-foreground'
                     : i === step
-                    ? 'border-primary text-primary bg-primary/10'
-                    : 'border-muted text-muted-foreground'
+                      ? 'border-primary text-primary bg-primary/10'
+                      : 'border-muted text-muted-foreground'
                 )}
               >
                 {i < step ? <CheckCircle className="h-4 w-4" /> : i + 1}
@@ -1230,7 +1286,11 @@ export default function Composer() {
                         )}
                       >
                         <Checkbox checked={selected} onCheckedChange={() => togglePlatform(acc.platform)} />
-                        {acc.platform === 'linkedin' ? <Linkedin className="h-5 w-5 text-blue-600 shrink-0" /> : <Twitter className="h-5 w-5 text-sky-500 shrink-0" />}
+                        {acc.platform === 'linkedin'
+                          ? <Linkedin className="h-5 w-5 text-blue-600 shrink-0" />
+                          : acc.platform === 'tiktok'
+                            ? <Music2 className="h-5 w-5 text-slate-900 shrink-0" />
+                            : <Twitter className="h-5 w-5 text-sky-500 shrink-0" />}
                         <div className="truncate">
                           <p className="font-semibold text-xs capitalize">{acc.platform}</p>
                           <p className="text-[11px] text-muted-foreground truncate">{acc.name || acc.platformUsername}</p>

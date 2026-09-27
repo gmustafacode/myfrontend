@@ -20,6 +20,7 @@ import {
   Twitter,
   Facebook,
   Instagram,
+  Music2,
   Link2,
   Link2Off,
   Loader2,
@@ -98,9 +99,17 @@ const platformConfig: Record<string, {
     ringColor: 'ring-pink-500',
     description: 'Share visual content with your Instagram audience',
   },
+  tiktok: {
+    label: 'TikTok',
+    icon: Music2,
+    color: 'text-slate-900',
+    bgColor: 'bg-slate-50 border-slate-300',
+    ringColor: 'ring-slate-900',
+    description: 'Publish short-form video to your TikTok audience',
+  },
 }
 
-const ALL_PLATFORMS = ['linkedin', 'x', 'facebook', 'instagram']
+const ALL_PLATFORMS = ['linkedin', 'x', 'facebook', 'instagram', 'tiktok']
 
 export default function Connect() {
   const [accounts, setAccounts] = useState<Account[]>([])
@@ -161,7 +170,7 @@ export default function Connect() {
       .then((res) => {
         setFacebookPages(res.data.pages || [])
       })
-      .catch(() => {})
+      .catch(() => { })
   }
 
   const syncPages = async (targetIdOrUrl?: string) => {
@@ -190,7 +199,8 @@ export default function Connect() {
   // Build connect URL — pass JWT as ?token= so backend can store against logged-in user
   const connect = (platform: string) => {
     const token = localStorage.getItem('token') || ''
-    const connectUrl = `https://newproject-chi-gold.vercel.app/api/social/${platform}/connect?token=${encodeURIComponent(token)}`
+    const baseUrl = 'https://social-sync-backend.vercel.app/api'
+    const connectUrl = `${baseUrl}/social/${platform}/connect?token=${encodeURIComponent(token)}`
     window.location.href = connectUrl
   }
 
@@ -241,11 +251,10 @@ export default function Connect() {
             return (
               <Card
                 key={platform}
-                className={`border-2 transition-all duration-200 ${
-                  connected
+                className={`border-2 transition-all duration-200 ${connected
                     ? `${cfg.bgColor} shadow-sm`
                     : 'hover:shadow-md hover:border-muted-foreground/30'
-                }`}
+                  }`}
               >
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
@@ -422,11 +431,10 @@ export default function Connect() {
 
       {/* Summary bar — how many connected */}
       {!loading && (
-        <div className={`rounded-xl border p-4 flex items-center gap-3 ${
-          accounts.length > 0
+        <div className={`rounded-xl border p-4 flex items-center gap-3 ${accounts.length > 0
             ? 'bg-green-50 border-green-200'
             : 'bg-amber-50 border-amber-200'
-        }`}>
+          }`}>
           {accounts.length > 0 ? (
             <CheckCircle className="h-5 w-5 text-green-600 shrink-0" />
           ) : (
