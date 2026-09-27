@@ -252,8 +252,8 @@ export default function Connect() {
               <Card
                 key={platform}
                 className={`border-2 transition-all duration-200 ${connected
-                    ? `${cfg.bgColor} shadow-sm`
-                    : 'hover:shadow-md hover:border-muted-foreground/30'
+                  ? `${cfg.bgColor} shadow-sm`
+                  : 'hover:shadow-md hover:border-muted-foreground/30'
                   }`}
               >
                 <CardHeader className="pb-3">
@@ -432,8 +432,8 @@ export default function Connect() {
       {/* Summary bar — how many connected */}
       {!loading && (
         <div className={`rounded-xl border p-4 flex items-center gap-3 ${accounts.length > 0
-            ? 'bg-green-50 border-green-200'
-            : 'bg-amber-50 border-amber-200'
+          ? 'bg-green-50 border-green-200'
+          : 'bg-amber-50 border-amber-200'
           }`}>
           {accounts.length > 0 ? (
             <CheckCircle className="h-5 w-5 text-green-600 shrink-0" />
