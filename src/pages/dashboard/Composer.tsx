@@ -384,7 +384,7 @@ export default function Composer() {
       toast.error('Please upload a video file or provide a video URL'); return
     }
     if (selectedPlatforms.includes('instagram') && !['image', 'video'].includes(postFormat)) {
-      toast.error('Instagram supports image posts, Reels, and video posts from this composer')
+      toast.error('Choose Image + Caption or Video + Caption to publish on Instagram')
       return
     }
     if (selectedPlatforms.includes('tiktok') && (postFormat !== 'video' || !videoFile)) {
