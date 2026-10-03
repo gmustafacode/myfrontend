@@ -533,12 +533,12 @@ export default function Connect() {
           <DialogHeader>
             <DialogTitle>Use your Meta developer app</DialogTitle>
             <DialogDescription>
-              Enter the {credentialPlatform === 'facebook' ? 'Facebook' : 'Instagram'} app credentials. Add the callback URL below in Meta Developer settings before connecting.
+              Enter the {credentialPlatform === 'facebook' ? 'Facebook' : 'Instagram Login'} app credentials. Do not use a page ID or a client-side app ID.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <Input
-              placeholder="Meta App ID"
+              placeholder={credentialPlatform === 'instagram' ? 'Instagram Login App ID' : 'Facebook App ID'}
               value={metaAppId}
               onChange={(event) => setMetaAppId(event.target.value)}
               autoComplete="off"
@@ -553,6 +553,11 @@ export default function Connect() {
             <p className="rounded-md bg-muted p-2 text-xs break-all">
               Callback: {metaCredentials.find((item) => item.platform === credentialPlatform)?.redirectUri || `https://social-sync-backend.vercel.app/api/social/${credentialPlatform}/callback`}
             </p>
+            {credentialPlatform === 'instagram' && (
+              <p className="text-xs text-muted-foreground">
+                In Meta Developers, add the Instagram API with Instagram Login product, configure this exact callback under Instagram Login settings, and enable the required Instagram business permissions. A Facebook Login-only app returns “Invalid platform app”.
+              </p>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCredentialPlatform(null)}>Cancel</Button>
