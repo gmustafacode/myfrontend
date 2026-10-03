@@ -9,7 +9,8 @@ import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, Save, AlertTriangle, Copy, Check } from 'lucide-react'
+import { Loader2, Save, AlertTriangle, Copy, Check, KeyRound, Link2 } from 'lucide-react'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 
 interface Prefs {
@@ -18,6 +19,12 @@ interface Prefs {
   defaultPlatforms: string[]
   webhookUrl?: string
   n8nWebhookUrl?: string
+}
+
+interface MetaCredential {
+  _id: string
+  platform: 'facebook' | 'instagram'
+  redirectUri: string
 }
 
 export default function Settings() {
@@ -30,12 +37,23 @@ export default function Settings() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [metaCredentials, setMetaCredentials] = useState<MetaCredential[]>([])
+  const [credentialPlatform, setCredentialPlatform] = useState<'facebook' | 'instagram' | null>(null)
+  const [metaAppId, setMetaAppId] = useState('')
+  const [metaAppSecret, setMetaAppSecret] = useState('')
+  const [savingCredential, setSavingCredential] = useState(false)
 
   useEffect(() => {
     api.get('/preferences')
       .then((res) => setPrefs({ ...prefs, ...res.data }))
       .catch(() => toast.error('Failed to load preferences'))
       .finally(() => setLoading(false))
+  }, [])
+
+  useEffect(() => {
+    api.get('/social/meta/credentials')
+      .then((res) => setMetaCredentials(res.data?.credentials || []))
+      .catch(() => toast.error('Failed to load Meta app settings'))
   }, [])
 
   const save = async () => {
@@ -56,6 +74,41 @@ export default function Settings() {
       navigator.clipboard.writeText(url)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
+  const connect = (platform: 'facebook' | 'instagram', metaCredentialId?: string) => {
+    const token = localStorage.getItem('token') || ''
+    const baseUrl = 'https://social-sync-backend.vercel.app/api'
+    const credentialQuery = metaCredentialId ? `&metaCredentialId=${encodeURIComponent(metaCredentialId)}` : ''
+    window.location.href = `${baseUrl}/social/${platform}/connect?token=${encodeURIComponent(token)}${credentialQuery}`
+  }
+
+  const openMetaCredentialDialog = (platform: 'facebook' | 'instagram') => {
+    setCredentialPlatform(platform)
+    setMetaAppId('')
+    setMetaAppSecret('')
+  }
+
+  const saveAndConnectMetaApp = async () => {
+    if (!credentialPlatform || !metaAppId.trim() || !metaAppSecret.trim()) return
+    setSavingCredential(true)
+    try {
+      const response = await api.post('/social/meta/credentials', {
+        platform: credentialPlatform,
+        clientId: metaAppId,
+        clientSecret: metaAppSecret,
+      })
+      const credential = response.data?.credential
+      if (!credential?._id) throw new Error('Credential was not saved')
+      setMetaCredentials((previous) => [
+        ...previous.filter((item) => item.platform !== credentialPlatform),
+        credential,
+      ])
+      connect(credentialPlatform, credential._id)
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Could not save Meta app credentials')
+      setSavingCredential(false)
     }
   }
 
@@ -90,6 +143,45 @@ export default function Settings() {
               </div>
             </>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Meta app credentials */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Meta App Credentials</CardTitle>
+          <CardDescription>
+            Use your saved app when connecting Facebook or Instagram. Without a saved app, the platform connection uses SocialSync's main credentials.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {(['facebook', 'instagram'] as const).map((platform) => {
+            const savedCredential = metaCredentials.find((item) => item.platform === platform)
+            const label = platform === 'facebook' ? 'Facebook' : 'Instagram'
+
+            return (
+              <div key={platform} className="flex flex-wrap items-center justify-between gap-3 rounded-md border p-3">
+                <div className="min-w-0">
+                  <p className="font-medium text-sm">{label}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {savedCredential ? 'Your Meta app is saved for this platform.' : 'No personal app saved; main credentials will be used.'}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {savedCredential && (
+                    <Button variant="secondary" size="sm" onClick={() => connect(platform, savedCredential._id)}>
+                      <Link2 className="mr-1.5 h-3.5 w-3.5" />
+                      Connect with saved Meta app
+                    </Button>
+                  )}
+                  <Button variant="outline" size="sm" onClick={() => openMetaCredentialDialog(platform)}>
+                    <KeyRound className="mr-1.5 h-3.5 w-3.5" />
+                    {savedCredential ? 'Replace my Meta app' : 'Add my Meta app'}
+                  </Button>
+                </div>
+              </div>
+            )
+          })}
         </CardContent>
       </Card>
 
@@ -178,6 +270,47 @@ export default function Settings() {
           Save Changes
         </Button>
       </div>
+
+      <Dialog open={!!credentialPlatform} onOpenChange={(open) => !open && setCredentialPlatform(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Use your Meta developer app</DialogTitle>
+            <DialogDescription>
+              Enter the {credentialPlatform === 'facebook' ? 'Facebook' : 'Instagram Login'} app credentials. Do not use a page ID or a client-side app ID.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Input
+              placeholder={credentialPlatform === 'instagram' ? 'Instagram Login App ID' : 'Facebook App ID'}
+              value={metaAppId}
+              onChange={(event) => setMetaAppId(event.target.value)}
+              autoComplete="off"
+            />
+            <Input
+              type="password"
+              placeholder="Meta App Secret"
+              value={metaAppSecret}
+              onChange={(event) => setMetaAppSecret(event.target.value)}
+              autoComplete="new-password"
+            />
+            <p className="rounded-md bg-muted p-2 text-xs break-all">
+              Callback: {metaCredentials.find((item) => item.platform === credentialPlatform)?.redirectUri || `https://social-sync-backend.vercel.app/api/social/${credentialPlatform}/callback`}
+            </p>
+            {credentialPlatform === 'instagram' && (
+              <p className="text-xs text-muted-foreground">
+                In Meta Developers, add the Instagram API with Instagram Login product and configure this exact callback under Instagram Login settings.
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCredentialPlatform(null)}>Cancel</Button>
+            <Button onClick={saveAndConnectMetaApp} disabled={savingCredential || !metaAppId.trim() || !metaAppSecret.trim()}>
+              {savingCredential && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save and connect
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Danger zone */}
       <Card className="border-destructive/50">

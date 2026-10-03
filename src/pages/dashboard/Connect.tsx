@@ -31,7 +31,6 @@ import {
   Mail,
   Layers,
   Plus,
-  KeyRound,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -50,12 +49,6 @@ interface FacebookPage {
   id: string
   name: string
   category?: string
-}
-
-interface MetaCredential {
-  _id: string
-  platform: 'facebook' | 'instagram'
-  redirectUri: string
 }
 
 const platformConfig: Record<string, {
@@ -129,11 +122,6 @@ export default function Connect() {
   const [syncingFbPages, setSyncingFbPages] = useState(false)
   const [manualPageInput, setManualPageInput] = useState('')
   const [showManualInput, setShowManualInput] = useState(false)
-  const [metaCredentials, setMetaCredentials] = useState<MetaCredential[]>([])
-  const [credentialPlatform, setCredentialPlatform] = useState<'facebook' | 'instagram' | null>(null)
-  const [metaAppId, setMetaAppId] = useState('')
-  const [metaAppSecret, setMetaAppSecret] = useState('')
-  const [savingCredential, setSavingCredential] = useState(false)
 
   // ── Handle OAuth return params ────────────────────────────────────────
   useEffect(() => {
@@ -208,12 +196,6 @@ export default function Connect() {
 
   useEffect(() => { fetchAccounts() }, [])
 
-  useEffect(() => {
-    api.get('/social/meta/credentials')
-      .then((res) => setMetaCredentials(res.data?.credentials || []))
-      .catch(() => { })
-  }, [])
-
   // Build connect URL — pass JWT as ?token= so backend can store against logged-in user
   const connect = (platform: string, metaCredentialId?: string) => {
     const token = localStorage.getItem('token') || ''
@@ -221,34 +203,6 @@ export default function Connect() {
     const credentialQuery = metaCredentialId ? `&metaCredentialId=${encodeURIComponent(metaCredentialId)}` : ''
     const connectUrl = `${baseUrl}/social/${platform}/connect?token=${encodeURIComponent(token)}${credentialQuery}`
     window.location.href = connectUrl
-  }
-
-  const openMetaCredentialDialog = (platform: 'facebook' | 'instagram') => {
-    setCredentialPlatform(platform)
-    setMetaAppId('')
-    setMetaAppSecret('')
-  }
-
-  const saveAndConnectMetaApp = async () => {
-    if (!credentialPlatform || !metaAppId.trim() || !metaAppSecret.trim()) return
-    setSavingCredential(true)
-    try {
-      const response = await api.post('/social/meta/credentials', {
-        platform: credentialPlatform,
-        clientId: metaAppId,
-        clientSecret: metaAppSecret,
-      })
-      const credential = response.data?.credential
-      if (!credential?._id) throw new Error('Credential was not saved')
-      setMetaCredentials((previous) => [
-        ...previous.filter((item) => item.platform !== credentialPlatform),
-        credential,
-      ])
-      connect(credentialPlatform, credential._id)
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Could not save Meta app credentials')
-      setSavingCredential(false)
-    }
   }
 
   const disconnect = async (id: string) => {
@@ -294,8 +248,6 @@ export default function Connect() {
             const Icon = cfg.icon
             const account = accounts.find((a) => a.platform === platform)
             const connected = connectedPlatforms.has(platform)
-            const savedMetaCredential = metaCredentials.find((item) => item.platform === platform)
-
             return (
               <Card
                 key={platform}
@@ -470,30 +422,6 @@ export default function Connect() {
                       Connect {cfg.label}
                     </Button>
                   )}
-                  {(platform === 'facebook' || platform === 'instagram') && (
-                    <div className="space-y-1">
-                      {savedMetaCredential && (
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          className="w-full text-xs"
-                          onClick={() => connect(platform, savedMetaCredential._id)}
-                        >
-                          <KeyRound className="mr-1.5 h-3.5 w-3.5" />
-                          Connect with saved Meta app
-                        </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="w-full text-xs"
-                        onClick={() => openMetaCredentialDialog(platform)}
-                      >
-                        <KeyRound className="mr-1.5 h-3.5 w-3.5" />
-                        {savedMetaCredential ? 'Replace my Meta app' : 'Use my Meta app'}
-                      </Button>
-                    </div>
-                  )}
                 </CardContent>
               </Card>
             )
@@ -526,48 +454,6 @@ export default function Connect() {
           </div>
         </div>
       )}
-
-      {/* Confirm disconnect dialog */}
-      <Dialog open={!!credentialPlatform} onOpenChange={(open) => !open && setCredentialPlatform(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Use your Meta developer app</DialogTitle>
-            <DialogDescription>
-              Enter the {credentialPlatform === 'facebook' ? 'Facebook' : 'Instagram Login'} app credentials. Do not use a page ID or a client-side app ID.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3">
-            <Input
-              placeholder={credentialPlatform === 'instagram' ? 'Instagram Login App ID' : 'Facebook App ID'}
-              value={metaAppId}
-              onChange={(event) => setMetaAppId(event.target.value)}
-              autoComplete="off"
-            />
-            <Input
-              type="password"
-              placeholder="Meta App Secret"
-              value={metaAppSecret}
-              onChange={(event) => setMetaAppSecret(event.target.value)}
-              autoComplete="new-password"
-            />
-            <p className="rounded-md bg-muted p-2 text-xs break-all">
-              Callback: {metaCredentials.find((item) => item.platform === credentialPlatform)?.redirectUri || `https://social-sync-backend.vercel.app/api/social/${credentialPlatform}/callback`}
-            </p>
-            {credentialPlatform === 'instagram' && (
-              <p className="text-xs text-muted-foreground">
-                In Meta Developers, add the Instagram API with Instagram Login product, configure this exact callback under Instagram Login settings, and enable the required Instagram business permissions. A Facebook Login-only app returns “Invalid platform app”.
-              </p>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCredentialPlatform(null)}>Cancel</Button>
-            <Button onClick={saveAndConnectMetaApp} disabled={savingCredential || !metaAppId.trim() || !metaAppSecret.trim()}>
-              {savingCredential && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Save and connect
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <Dialog open={!!confirmId} onOpenChange={() => setConfirmId(null)}>
         <DialogContent>
