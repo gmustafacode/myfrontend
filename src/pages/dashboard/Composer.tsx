@@ -61,6 +61,14 @@ interface ModerationResult {
 
 type PostFormat = 'text' | 'image' | 'video' | 'article' | 'document'
 
+interface PostMetadata {
+  hashtags: string[]
+  keywords: string[]
+  seoTitle: string
+  seoDescription: string
+  altText: string
+}
+
 const formatOptions = [
   { id: 'text', label: 'Text Thought Leadership', icon: FileText, desc: 'Provocative hooks & insights' },
   { id: 'image', label: 'Image + Caption', icon: ImageIcon, desc: 'Infographics & visuals' },
@@ -104,6 +112,7 @@ export default function Composer() {
   // Step 2 – Format & Content
   const [postFormat, setPostFormat] = useState<PostFormat>('text')
   const [content, setContent] = useState('')
+  const [postMetadata, setPostMetadata] = useState<PostMetadata>({ hashtags: [], keywords: [], seoTitle: '', seoDescription: '', altText: '' })
   const [refiningAction, setRefiningAction] = useState<string | null>(null)
 
   // Media states
@@ -201,11 +210,21 @@ export default function Composer() {
         tone,
         audience,
         postType: postFormat,
-        platform: 'linkedin'
+        platform: ['linkedin', 'facebook', 'instagram']
       })
 
       const generated = res.data.content || res.data.text || ''
       setContent(generated)
+      const generatedMetadata = res.data.platformContent?.linkedin || res.data.metadata?.linkedin
+      if (generatedMetadata) {
+        setPostMetadata({
+          hashtags: generatedMetadata.hashtags || [],
+          keywords: generatedMetadata.keywords || [],
+          seoTitle: generatedMetadata.seoTitle || '',
+          seoDescription: generatedMetadata.seoDescription || '',
+          altText: generatedMetadata.altText || ''
+        })
+      }
       toast.success('Thought leadership post generated successfully!')
       setStep(2)
 
@@ -397,6 +416,12 @@ export default function Composer() {
 
     setPublishing(true)
 
+    const metadataPayload = {
+      ...postMetadata,
+      hashtags: postMetadata.hashtags.map((tag) => tag.startsWith('#') ? tag : `#${tag}`),
+      keywords: postMetadata.keywords.filter(Boolean)
+    }
+
     try {
       if (publishMode === 'now') {
         let publishedAny = false
@@ -405,7 +430,7 @@ export default function Composer() {
         if (selectedPlatforms.includes('linkedin')) {
           try {
             if (postFormat === 'text') {
-              const res = await api.post('/social/linkedin/post/text', { text: content })
+              const res = await api.post('/social/linkedin/post/text', { text: content, metadata: metadataPayload })
               toast.success('Published live to LinkedIn!', {
                 description: `Post URN: ${res.data.postId}`,
                 duration: 6000
@@ -415,6 +440,7 @@ export default function Composer() {
               if (imageFile) {
                 const formData = new FormData()
                 formData.append('text', content)
+                formData.append('metadata', JSON.stringify(metadataPayload))
                 formData.append('image', imageFile)
                 const res = await api.post('/social/linkedin/post/image', formData)
                 toast.success('Image post published live to LinkedIn!', {
@@ -423,7 +449,7 @@ export default function Composer() {
                 })
                 publishedAny = true
               } else {
-                const res = await api.post('/social/linkedin/post/image', { text: content, imageUrl })
+                const res = await api.post('/social/linkedin/post/image', { text: content, imageUrl, metadata: metadataPayload })
                 toast.success('Image post published live to LinkedIn!', {
                   description: `Post URN: ${res.data.postId}`,
                   duration: 6000
@@ -435,7 +461,8 @@ export default function Composer() {
                 text: content,
                 url: linkUrl,
                 title: linkTitle || linkUrl,
-                description: linkDesc
+                description: linkDesc,
+                metadata: metadataPayload
               })
               toast.success('Article post published live to LinkedIn!', {
                 description: `Post URN: ${res.data.postId}`,
@@ -445,6 +472,7 @@ export default function Composer() {
             } else if (postFormat === 'document') {
               const formData = new FormData()
               formData.append('text', content)
+              formData.append('metadata', JSON.stringify(metadataPayload))
               formData.append('title', docTitle || 'Document')
               formData.append('document', docFile!)
               const res = await api.post('/social/linkedin/post/document', formData)
@@ -457,6 +485,7 @@ export default function Composer() {
               if (videoFile) {
                 const formData = new FormData()
                 formData.append('text', content)
+                formData.append('metadata', JSON.stringify(metadataPayload))
                 formData.append('video', videoFile)
                 formData.append('file', videoFile)
                 const res = await api.post('/social/linkedin/post/video', formData)
@@ -466,7 +495,7 @@ export default function Composer() {
                 })
                 publishedAny = true
               } else if (videoUrl) {
-                const res = await api.post('/social/linkedin/post/video', { text: content, videoUrl })
+                const res = await api.post('/social/linkedin/post/video', { text: content, videoUrl, metadata: metadataPayload })
                 toast.success('Video post published live to LinkedIn!', {
                   description: `Post URN: ${res.data.postId}`,
                   duration: 6000
@@ -483,7 +512,7 @@ export default function Composer() {
         if (selectedPlatforms.includes('facebook')) {
           try {
             if (postFormat === 'text') {
-              const res = await api.post('/social/facebook/post/text', { message: content })
+              const res = await api.post('/social/facebook/post/text', { message: content, metadata: metadataPayload })
               toast.success('Published live to Facebook!', {
                 description: res.data?.postId ? `Post ID: ${res.data.postId}` : 'Published to Page',
                 duration: 6000
@@ -493,6 +522,7 @@ export default function Composer() {
               if (imageFile) {
                 const formData = new FormData()
                 formData.append('caption', content)
+                formData.append('metadata', JSON.stringify(metadataPayload))
                 formData.append('image', imageFile)
                 const res = await api.post('/social/facebook/post/image', formData)
                 toast.success('Image post published live to Facebook!', {
@@ -501,7 +531,7 @@ export default function Composer() {
                 })
                 publishedAny = true
               } else {
-                const res = await api.post('/social/facebook/post/image', { caption: content, imageUrl })
+                const res = await api.post('/social/facebook/post/image', { caption: content, imageUrl, metadata: metadataPayload })
                 toast.success('Image post published live to Facebook!', {
                   description: res.data?.postId ? `Post ID: ${res.data.postId}` : 'Published to Page',
                   duration: 6000
@@ -511,7 +541,8 @@ export default function Composer() {
             } else if (postFormat === 'article') {
               const res = await api.post('/social/facebook/post/text', {
                 message: content,
-                link: linkUrl
+                link: linkUrl,
+                metadata: metadataPayload
               })
               toast.success('Article link published live to Facebook!', {
                 description: res.data?.postId ? `Post ID: ${res.data.postId}` : 'Published to Page',
@@ -520,7 +551,8 @@ export default function Composer() {
               publishedAny = true
             } else if (postFormat === 'document') {
               const res = await api.post('/social/facebook/post/text', {
-                message: `${docTitle ? docTitle + '\n\n' : ''}${content}`
+                message: `${docTitle ? docTitle + '\n\n' : ''}${content}`,
+                metadata: metadataPayload
               })
               toast.success('Published update to Facebook!', {
                 description: res.data?.postId ? `Post ID: ${res.data.postId}` : 'Published to Page',
@@ -531,6 +563,7 @@ export default function Composer() {
               if (videoFile) {
                 const formData = new FormData()
                 formData.append('text', content)
+                formData.append('metadata', JSON.stringify(metadataPayload))
                 formData.append('description', content)
                 formData.append('video', videoFile)
                 formData.append('file', videoFile)
@@ -544,7 +577,8 @@ export default function Composer() {
                 const res = await api.post('/social/facebook/post/video', {
                   text: content,
                   description: content,
-                  videoUrl
+                  videoUrl,
+                  metadata: metadataPayload
                 })
                 toast.success('Video post published live to Facebook!', {
                   description: res.data?.postId ? `Post ID: ${res.data.postId}` : 'Published to Page',
@@ -573,7 +607,7 @@ export default function Composer() {
             }
             if (!mediaUrl) throw new Error('Instagram requires a public media URL')
             const endpoint = postFormat === 'image' ? '/social/instagram/post/image' : '/social/instagram/post/reel'
-            const payload = postFormat === 'image' ? { imageUrl: mediaUrl, caption: content } : { videoUrl: mediaUrl, caption: content, shareToFeed: true }
+            const payload = postFormat === 'image' ? { imageUrl: mediaUrl, caption: content, metadata: metadataPayload } : { videoUrl: mediaUrl, caption: content, shareToFeed: true, metadata: metadataPayload }
             const res = await api.post(endpoint, payload)
             toast.success(`${postFormat === 'image' ? 'Image' : 'Reel'} published live to Instagram!`, {
               description: res.data?.mediaId ? `Media ID: ${res.data.mediaId}` : 'Published to Instagram',
@@ -636,7 +670,8 @@ export default function Composer() {
             status: 'queued',
             linkUrl: postFormat === 'article' ? linkUrl : undefined,
             title: postFormat === 'article' ? linkTitle : (postFormat === 'document' ? docTitle : undefined),
-            mediaUrl: finalMediaUrl
+            mediaUrl: finalMediaUrl,
+            metadata: metadataPayload
           })
           toast.success('Post saved to queue!')
         }
@@ -672,7 +707,8 @@ export default function Composer() {
           scheduledFor: publishMode === 'schedule' ? scheduledFor : undefined,
           linkUrl: postFormat === 'article' ? linkUrl : undefined,
           title: postFormat === 'article' ? linkTitle : (postFormat === 'document' ? docTitle : undefined),
-          mediaUrl: finalMediaUrl
+          mediaUrl: finalMediaUrl,
+          metadata: metadataPayload
         })
 
         toast.success(publishMode === 'schedule' ? 'Post scheduled successfully!' : 'Post added to queue!')
@@ -681,6 +717,7 @@ export default function Composer() {
       // Reset
       setStep(0)
       setContent('')
+      setPostMetadata({ hashtags: [], keywords: [], seoTitle: '', seoDescription: '', altText: '' })
       setTopic('')
       setImageFile(null)
       setImagePreview(null)
@@ -1221,6 +1258,64 @@ export default function Composer() {
                 onChange={(e) => setContent(e.target.value)}
                 className="min-h-[220px] font-sans text-sm leading-relaxed"
               />
+
+              <div className="rounded-lg border bg-muted/20 p-3 space-y-3">
+                <div>
+                  <p className="text-sm font-semibold">SEO & Platform Metadata</p>
+                  <p className="text-xs text-muted-foreground">Review the generated hashtags and discovery fields before publishing.</p>
+                </div>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Hashtags</Label>
+                    <Input
+                      value={postMetadata.hashtags.join(' ')}
+                      onChange={(e) => setPostMetadata((current) => ({ ...current, hashtags: e.target.value.split(/[\s,]+/).filter(Boolean) }))}
+                      placeholder="#AI #SaaS #Leadership"
+                      className="h-8 text-xs"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">SEO Keywords</Label>
+                    <Input
+                      value={postMetadata.keywords.join(', ')}
+                      onChange={(e) => setPostMetadata((current) => ({ ...current, keywords: e.target.value.split(',').map((keyword) => keyword.trim()).filter(Boolean) }))}
+                      placeholder="AI agents, SaaS, architecture"
+                      className="h-8 text-xs"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">SEO Title</Label>
+                  <Input
+                    value={postMetadata.seoTitle}
+                    onChange={(e) => setPostMetadata((current) => ({ ...current, seoTitle: e.target.value }))}
+                    maxLength={60}
+                    placeholder="Search-friendly post title"
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">SEO Description</Label>
+                    <Textarea
+                      value={postMetadata.seoDescription}
+                      onChange={(e) => setPostMetadata((current) => ({ ...current, seoDescription: e.target.value }))}
+                      maxLength={160}
+                      placeholder="Short description for discovery and previews"
+                      className="min-h-[70px] text-xs"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Image Alt Text</Label>
+                    <Textarea
+                      value={postMetadata.altText}
+                      onChange={(e) => setPostMetadata((current) => ({ ...current, altText: e.target.value }))}
+                      placeholder="Describe the visual for accessibility"
+                      className="min-h-[70px] text-xs"
+                    />
+                  </div>
+                </div>
+              </div>
 
               <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
                 <div className="flex items-center gap-3">
