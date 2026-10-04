@@ -411,7 +411,7 @@ export default function Composer() {
       toast.error('Please upload a video file or provide a video URL'); return
     }
     if (selectedPlatforms.includes('instagram') && !['image', 'video'].includes(postFormat)) {
-      toast.error('Choose Image + Caption or Video + Caption to publish on Instagram')
+      toast.warning('Instagram requires an Image + Caption or Video + Caption format')
       return
     }
     if (selectedPlatforms.includes('tiktok') && (postFormat !== 'video' || !videoFile)) {
@@ -1393,6 +1393,12 @@ export default function Composer() {
               <CardDescription>Select connected accounts to publish this {postFormat} post to</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
+              {selectedPlatforms.includes('instagram') && !['image', 'video'].includes(postFormat) && (
+                <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>Instagram cannot publish {postFormat} posts. Go back to Post Format and choose Image + Caption or Video + Caption, then attach the media.</span>
+                </div>
+              )}
               {accounts.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No accounts connected. Please go to Connect Platforms to link LinkedIn.</p>
               ) : (
@@ -1539,7 +1545,7 @@ export default function Composer() {
         ) : (
           <Button
             onClick={publish}
-            disabled={publishing || selectedPlatforms.length === 0}
+            disabled={publishing || selectedPlatforms.length === 0 || (selectedPlatforms.includes('instagram') && !['image', 'video'].includes(postFormat))}
             className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium"
           >
             {publishing ? (
