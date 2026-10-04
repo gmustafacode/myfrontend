@@ -17,6 +17,7 @@ import {
   X,
   Zap,
   Bot,
+  Search,
 } from 'lucide-react'
 
 const navSections = [
@@ -39,6 +40,7 @@ const navSections = [
     label: 'Management',
     items: [
       { href: '/dashboard/connect', label: 'Connect Platforms', icon: Link2 },
+      { href: '/dashboard/account-seo', label: 'Account SEO', icon: Search },
       { href: '/dashboard/automation', label: 'Automation', icon: Zap },
       { href: '/dashboard/settings', label: 'Settings', icon: Settings },
     ],

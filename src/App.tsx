@@ -15,6 +15,7 @@ import Connect from '@/pages/dashboard/Connect'
 import Queue from '@/pages/dashboard/Queue'
 import Settings from '@/pages/dashboard/Settings'
 import Automation from '@/pages/dashboard/Automation'
+import AccountSeo from '@/pages/dashboard/AccountSeo'
 
 export default function App() {
   return (
@@ -46,6 +47,7 @@ export default function App() {
             <Route path="queue" element={<Queue />} />
             <Route path="settings" element={<Settings />} />
             <Route path="automation" element={<Automation />} />
+            <Route path="account-seo" element={<AccountSeo />} />
           </Route>
 
           {/* Catch-all redirect */}
