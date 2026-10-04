@@ -99,7 +99,11 @@ export default function AccountSeo() {
             const updated = response.data.account as AccountSeoState
             setAccounts((current) => current.map((account) => account.accountId === updated.accountId ? updated : account))
             setFields({ ...emptySeo, ...updated.seo })
-            toast.success(response.data.syncMessage || 'SEO settings saved')
+            if (response.data.platformSynced) {
+                toast.success(response.data.syncMessage || 'SEO settings synced')
+            } else {
+                toast.warning(response.data.syncMessage || 'SEO package saved locally')
+            }
         } catch (error: any) {
             toast.error(error.response?.data?.message || 'Could not save SEO settings')
         } finally {
