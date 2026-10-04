@@ -39,7 +39,7 @@ const emptySeo: SeoFields = { displayName: '', headline: '', bio: '', about: '',
 const platformConfig: Record<Platform, { label: string; icon: typeof Linkedin; color: string; hint: string }> = {
     linkedin: { label: 'LinkedIn', icon: Linkedin, color: 'text-blue-600', hint: 'LinkedIn profile editing is restricted by the API. Your SEO package will be saved for posts and future publishing.' },
     facebook: { label: 'Facebook', icon: Facebook, color: 'text-blue-500', hint: 'Facebook Page name, About and website fields are synced through your Page access token.' },
-    instagram: { label: 'Instagram', icon: Instagram, color: 'text-pink-500', hint: 'Instagram Business profile name, biography and website are synced through the authorized API.' },
+    instagram: { label: 'Instagram', icon: Instagram, color: 'text-pink-500', hint: 'Instagram does not allow profile SEO writes with the current API scope. Your SEO package will be saved locally for captions, hashtags and content optimization.' },
 }
 
 export default function AccountSeo() {
