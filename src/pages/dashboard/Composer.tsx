@@ -160,13 +160,23 @@ export default function Composer() {
   const [scheduledFor, setScheduledFor] = useState('')
   const [publishing, setPublishing] = useState(false)
 
+  const changePostFormat = (nextFormat: PostFormat) => {
+    setPostFormat(nextFormat)
+    if (nextFormat !== 'image' && nextFormat !== 'video' && selectedPlatforms.includes('instagram')) {
+      setSelectedPlatforms((platforms) => platforms.filter((platform) => platform !== 'instagram'))
+      toast.info('Instagram was deselected because it requires an image or video post.')
+    }
+  }
+
   useEffect(() => {
     api.get('/social/accounts')
       .then((res) => {
         const accs = Array.isArray(res.data) ? res.data : []
         setAccounts(accs)
         if (accs.length > 0) {
-          setSelectedPlatforms(accs.map((a: Account) => a.platform))
+          setSelectedPlatforms(accs
+            .map((a: Account) => a.platform)
+            .filter((platform: string) => platform !== 'instagram' || postFormat === 'image' || postFormat === 'video'))
         }
       })
       .catch(() => { })
@@ -388,6 +398,10 @@ export default function Composer() {
 
   // ─── Toggle platform ──────────────────────────────────────────────────
   const togglePlatform = (platform: string) => {
+    if (platform === 'instagram' && !['image', 'video'].includes(postFormat) && !selectedPlatforms.includes(platform)) {
+      toast.info('Choose Image + Caption or Video + Caption before selecting Instagram.')
+      return
+    }
     setSelectedPlatforms((prev) =>
       prev.includes(platform) ? prev.filter((p) => p !== platform) : [...prev, platform]
     )
@@ -985,7 +999,7 @@ export default function Composer() {
 
                 <div className="space-y-1.5">
                   <Label className="text-xs">Post Format</Label>
-                  <Select value={postFormat} onValueChange={(val: PostFormat) => setPostFormat(val)}>
+                  <Select value={postFormat} onValueChange={(val: PostFormat) => changePostFormat(val)}>
                     <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="text">Text Commentary</SelectItem>
@@ -1018,7 +1032,7 @@ export default function Composer() {
                   return (
                     <button
                       key={fmt.id}
-                      onClick={() => setPostFormat(fmt.id as PostFormat)}
+                      onClick={() => changePostFormat(fmt.id as PostFormat)}
                       className={cn(
                         'rounded-lg border-2 p-3 text-left transition-all',
                         active
